@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>बाकी / एडवांस लिस्ट</title>
+<style>
+body{font-family:system-ui,Arial,sans-serif;margin:0;background:#f4f6f8;color:#222}
+header{background:#1565c0;color:white;padding:16px;text-align:center}
+.container{max-width:1000px;margin:auto;padding:12px}
+.card{background:white;border-radius:14px;padding:14px;margin:12px 0;box-shadow:0 2px 10px #0001}
+input,select,button{font:inherit;padding:10px;border:1px solid #ccc;border-radius:9px}
+input{width:100%;box-sizing:border-box;margin:5px 0}
+button{cursor:pointer;border:0;background:#1565c0;color:white;margin:4px}
+.danger{background:#d32f2f}.edit{background:#ef6c00}.gray{background:#607d8b}
+.form{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:6px;align-items:center}
+.summary{display:flex;gap:8px;flex-wrap:wrap}
+.badge{padding:9px 12px;background:#e3f2fd;border-radius:10px}
+table{width:100%;border-collapse:collapse;margin-top:10px}
+th,td{padding:9px;border-bottom:1px solid #eee;text-align:left}
+th{background:#fafafa}
+.actions{white-space:nowrap}
+@media(max-width:650px){.form{grid-template-columns:1fr 1fr}.form button{grid-column:span 2}table{font-size:14px}}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<header><h2>📋 बाकी / एडवांस लिस्ट</h2></header>
+<div class="container">
+
+<div class="card">
+<h3>➕ नया नाम जोड़ें</h3>
+<div class="form">
+<input id="name" placeholder="नाम / परिवार">
+<input id="kg" type="number" min="0" step="0.1" placeholder="किलो">
+<select id="type"><option value="बाकी">बाकी</option><option value="एडवांस">एडवांस</option></select>
+<button onclick="addItem()">जोड़ें</button>
+</div>
+</div>
+
+<div class="card">
+<input id="search" placeholder="🔎 नाम खोजें..." oninput="render()">
+<div class="summary">
+<div class="badge">बाकी: <b id="totalBaki">0</b> kg</div>
+<div class="badge">एडवांस: <b id="totalAdv">0</b> kg</div>
+<div class="badge">कुल रिकॉर्ड: <b id="count">0</b></div>
+</div>
+</div>
+
+<div class="card">
+<h3>बाकी</h3><div id="baki"></div>
+</div>
+<div class="card">
+<h3>एडवांस</h3><div id="adv"></div>
+</div>
+
+<div class="card">
+<button class="gray" onclick="exportData()">💾 बैकअप डाउनलोड</button>
+<button class="gray" onclick="document.getElementById('file').click()">📥 बैकअप वापस लाएँ</button>
+<input id="file" type="file" accept=".json" class="hidden" onchange="importData(event)">
+<button class="danger" onclick="clearAll()">🗑️ सभी रिकॉर्ड हटाएँ</button>
+</div>
+</div>
+
+<script>
+const initialData = [
+["अमिता/राजेशशुक्ला",10,"बाकी"],["देवकी/विनोद",20,"बाकी"],["देवकी/विनोद",20,"बाकी"],
+["नंदरानी/जगदीश",5,"बाकी"],["गुड्डीदेवी/विपिन",10,"बाकी"],["फूलमती/मेघन",35,"बाकी"],
+["ऊषादेवी/सुरेंद्र",10,"बाकी"],["संगीता/रामसेवक",35,"बाकी"],["पल्लवी/चंद्रशेखर",10,"बाकी"],
+["देवकी/विनोद",20,"बाकी"],["रेनू/परवीन",10,"बाकी"],["रागिनी/किसान",10,"बाकी"],
+["पल्लवी/चन्द्रशेखर",10,"बाकी"],["जयंती/विजय",20,"बाकी"],["प्रेमादेवी/दिलीप",10,"बाकी"],
+["पवनपिपरा",10,"बाकी"],["किरनदेवी/अश्वनी",20,"बाकी"],["चंद्रकांती/प्रेमचंद",15,"बाकी"],
+["दयाशंकर/रामकुमार",5,"बाकी"],["Mukesh",5,"बाकी"],["लक्ष्मी/सरोज",15,"बाकी"],
+["रागिनी/कृष्णकुमार",10,"बाकी"],["निशा/रामनिवास",20,"बाकी"],["संगीता/रामसेवक",35,"बाकी"],
+["ऋषिकांत",10,"बाकी"],["कुसुमा/वीरेंद्र",6,"बाकी"],["पल्लवी/चन्द्रशेखर",10,"बाकी"],
+["प्रेमादेवी/दिलीप",10,"बाकी"],["देवकी/विनोद",20,"बाकी"],["बेबीसिंह/संदीपसिंह",15,"बाकी"],
+["सुशीला/गुडु",8,"बाकी"],["किरनदेवी/राजेश",15,"बाकी"],["कांतिदेवी/प्रेमचंद",15,"बाकी"],
+["पम्मीदेवी/विश्राम",5,"बाकी"],["रंजना/विनय",10,"बाकी"],["किरनदेवी/अश्वनीकुमार",20,"बाकी"],
+["रूपरानी/रूपकिशोर",20,"बाकी"],["दयाशंकर",5,"बाकी"],["लक्ष्मी/सरोज",15,"बाकी"],
+["पल्लवी/चंद्रशेखर",10,"बाकी"],["मायादेवी/मायाराम",15,"बाकी"],["गीता/परमेश्वर",10,"बाकी"],
+["रंजना/विनय",10,"बाकी"],["अमितउर्फरुबेश",20,"बाकी"],["विद्या/देवेंद्र",10,"बाकी"],
+["रामकुमारशुक्ला/",50,"बाकी"],["नीतू/नैमिष",10,"बाकी"],["रामकुमार/श्रीचंद",10,"बाकी"],
+["जयंती/विजय",20,"बाकी"],["मायादेवी/मुनेंद्र",25,"बाकी"],["स्नो/रामसिंह",10,"बाकी"],
+["सरला/राकेश",15,"बाकी"],["किरन/अश्वनी",20,"बाकी"],
+["गीता/सतीश",10,"एडवांस"],["सावित्री/रामोतार",20,"एडवांस"],["मंजू/जगदीश",10,"एडवांस"],
+["इतवारी/बोधे",15,"एडवांस"],["गुड्डीदेवी/सतेन्द्र",10,"एडवांस"],["राजकुमारी/राजकुमार",5,"एडवांस"],
+["केतुका/जमुना",15,"एडवांस"],["मायादेवी/छत्रपाल",15,"एडवांस"]
+].map(x=>({name:x[0],kg:x[1],type:x[2],id:crypto.randomUUID()}));
+
+let data=JSON.parse(localStorage.getItem("rationList")||"null")||initialData;
+function save(){localStorage.setItem("rationList",JSON.stringify(data));}
+function addItem(){
+ const name=document.getElementById("name").value.trim(), kg=Number(document.getElementById("kg").value), type=document.getElementById("type").value;
+ if(!name||!(kg>=0)){alert("नाम और किलो भरें");return}
+ data.push({name,kg,type,id:crypto.randomUUID()}); save(); 
+ document.getElementById("name").value="";document.getElementById("kg").value="";render();
+}
+function removeItem(id){if(confirm("यह रिकॉर्ड हटाएँ?")){data=data.filter(x=>x.id!==id);save();render();}}
+function editItem(id){
+ const x=data.find(a=>a.id===id); if(!x)return;
+ const n=prompt("नाम बदलें:",x.name); if(n===null)return;
+ const k=prompt("किलो बदलें:",x.kg); if(k===null)return;
+ const t=prompt("बाकी या एडवांस लिखें:",x.type); if(t===null)return;
+ const num=Number(k); if(!n.trim()||!(num>=0)||(t!=="बाकी"&&t!=="एडवांस")){alert("सही जानकारी भरें");return}
+ x.name=n.trim();x.kg=num;x.type=t;save();render();
+}
+function table(items){
+ if(!items.length)return "<p>कोई रिकॉर्ड नहीं मिला।</p>";
+ return `<table><tr><th>नाम</th><th>किलो</th><th>कार्य</th></tr>`+
+ items.map(x=>`<tr><td>${esc(x.name)}</td><td>${x.kg} kg</td><td class="actions"><button class="edit" onclick="editItem('${x.id}')">✏️</button><button class="danger" onclick="removeItem('${x.id}')">🗑️</button></td></tr>`).join("")+"</table>";
+}
+function render(){
+ const q=document.getElementById("search").value.toLowerCase();
+ const filtered=data.filter(x=>x.name.toLowerCase().includes(q));
+ const baki=filtered.filter(x=>x.type==="बाकी"), adv=filtered.filter(x=>x.type==="एडवांस");
+ document.getElementById("baki").innerHTML=table(baki);document.getElementById("adv").innerHTML=table(adv);
+ document.getElementById("totalBaki").textContent=data.filter(x=>x.type==="बाकी").reduce((s,x)=>s+Number(x.kg),0);
+ document.getElementById("totalAdv").textContent=data.filter(x=>x.type==="एडवांस").reduce((s,x)=>s+Number(x.kg),0);
+ document.getElementById("count").textContent=data.length;
+}
+function esc(s){return s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));}
+function clearAll(){if(confirm("सभी रिकॉर्ड हटाने हैं? यह काम वापस नहीं होगा।")){data=[];save();render();}}
+function exportData(){
+ const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");
+ a.href=URL.createObjectURL(blob);a.download="baki-advance-backup.json";a.click();URL.revokeObjectURL(a.href);
+}
+function importData(e){
+ const f=e.target.files[0];if(!f)return;const r=new FileReader();
+ r.onload=()=>{try{const d=JSON.parse(r.result);if(!Array.isArray(d))throw 0;data=d.map(x=>({...x,id:x.id||crypto.randomUUID()}));save();render();alert("बैकअप वापस आ गया।")}catch{alert("गलत बैकअप फाइल")}};
+ r.readAsText(f);
+}
+render();
+</script>
+</body>
+</html>
